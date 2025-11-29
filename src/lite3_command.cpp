@@ -9,6 +9,7 @@
 #include <geometry_msgs/Vector3Stamped.h>
 #include <std_msgs/Int16.h>
 #include <atomic>
+#include <algorithm>
 
 using namespace std;
 
@@ -35,6 +36,13 @@ void cmdVelQuadrupedCallback(const geometry_msgs::TwistStamped::ConstPtr& msg)
 int main(int argc, char** argv) {
     ros::init(argc, argv, "lite3_ego_udp");
     ros::NodeHandle nh("~");
+    // 限幅参数（可以通过 rosparam 或 launch 覆盖）
+    double max_vel_x = 1.0;      // m/s
+    double max_vel_y = 0.5;      // m/s
+    double max_yaw_rate = 1.0;   // rad/s
+    nh.param("max_vel_x", max_vel_x, max_vel_x);
+    nh.param("max_vel_y", max_vel_y, max_vel_y);
+    nh.param("max_yaw_rate", max_yaw_rate, max_yaw_rate);
     // 配置服务器IP和端口
     // wireless
     // const string SERVER_IP = "192.168.2.1";
@@ -70,9 +78,18 @@ int main(int argc, char** argv) {
             //     last_go = go_val;
             // }
             if (go_val){
-                vel_x = cmd_vel.twist.linear.x;
-                vel_y = cmd_vel.twist.linear.y;
-                yaw_rate = cmd_vel.twist.angular.z;
+                double vel_x = cmd_vel.twist.linear.x;
+                double vel_y = cmd_vel.twist.linear.y;
+                double yaw_rate = cmd_vel.twist.angular.z;
+
+                // 限幅
+                if (vel_x > max_vel_x) vel_x = max_vel_x;
+                if (vel_x < -max_vel_x) vel_x = -max_vel_x;
+                if (vel_y > max_vel_y) vel_y = max_vel_y;
+                if (vel_y < -max_vel_y) vel_y = -max_vel_y;
+                if (yaw_rate > max_yaw_rate) yaw_rate = max_yaw_rate;
+                if (yaw_rate < -max_yaw_rate) yaw_rate = -max_yaw_rate;
+
                 sender.send_complex_cmd(-yaw_rate);
                 sender.send_complex_cmd(vel_y, 0x145);
                 sender.send_complex_cmd(vel_x, 0x140);
