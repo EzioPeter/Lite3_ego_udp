@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>transform_odom</name>
+  <name>lite3_ego_udp</name>
   <version>0.0.0</version>
-  <description>The transform_odom package</description>
+  <description>The lite3_ego_udp package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
