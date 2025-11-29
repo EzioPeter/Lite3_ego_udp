@@ -13,11 +13,23 @@
 using namespace std;
 
 static std::atomic<int16_t> g_go_flag{0};
+static geometry_msgs::TwistStamped cmd_vel;
 
 void goFlagCallback(const std_msgs::Int16::ConstPtr &msg)
 {
     g_go_flag.store(msg->data);
     ROS_DEBUG("Received go_flag = %d", msg->data);
+}
+
+void cmdVelQuadrupedCallback(const geometry_msgs::TwistStamped::ConstPtr& msg)
+{
+    ROS_INFO("[cmd_vel_quadruped] stamp=%.3f frame_id=%s lin=(%.3f,%.3f,%.3f) ang=(%.3f,%.3f,%.3f)",
+             msg->header.stamp.toSec(), msg->header.frame_id.c_str(),
+             msg->twist.linear.x, msg->twist.linear.y, msg->twist.linear.z,
+             msg->twist.angular.x, msg->twist.angular.y, msg->twist.angular.z);
+
+    // 保存最新收到的消息到全局变量（直接赋值，适用于单线程 spinOnce 场景）
+    cmd_vel = *msg;
 }
 
 int main(int argc, char** argv) {
@@ -42,8 +54,9 @@ int main(int argc, char** argv) {
         ros::Rate rate(200); // ~200Hz, similar to 5ms sleeps
         // subscribe to go_flag published by the planner FSM
         ros::Subscriber go_flag_sub = nh.subscribe<std_msgs::Int16>("/ego_planner_node/go_flag", 10, goFlagCallback);
+        ros::Subscriber cmd_vel_quad_sub = nh.subscribe<geometry_msgs::TwistStamped>("/cmd_vel_quadruped", 10, cmdVelQuadrupedCallback);
 
-        int16_t last_go = -1;
+        // int16_t last_go = -1;
         while (ros::ok()) {
             // 发送自动模式指令
             // sender.send_auto_mode();
@@ -52,9 +65,17 @@ int main(int argc, char** argv) {
             // sender.send_complex_cmd(0.2, 0x145);   // 左右平移
             // 读取最新的 go_flag（非阻塞）
             int16_t go_val = g_go_flag.load();
-            if (go_val != last_go) {
-                ROS_INFO("go_flag changed: %d", go_val);
-                last_go = go_val;
+            // if (go_val != last_go) {
+            //     ROS_INFO("go_flag changed: %d", go_val);
+            //     last_go = go_val;
+            // }
+            if (go_val){
+                vel_x = cmd_vel.twist.linear.x;
+                vel_y = cmd_vel.twist.linear.y;
+                yaw_rate = cmd_vel.twist.angular.z;
+                sender.send_complex_cmd(-yaw_rate);
+                sender.send_complex_cmd(vel_y, 0x145);
+                sender.send_complex_cmd(vel_x, 0x140);
             }
 
             ros::spinOnce();
