@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
 
     try {
         ROS_INFO("Starting to send commands...");
-        ros::Rate rate(200); // ~200Hz, similar to 5ms sleeps
+        ros::Rate rate(5); // ~200Hz, similar to 5ms sleeps
         // subscribe to go_flag published by the planner FSM
         ros::Subscriber go_flag_sub = nh.subscribe<std_msgs::Int16>("/ego_planner_node/go_flag", 10, goFlagCallback);
         ros::Subscriber cmd_vel_quad_sub = nh.subscribe<geometry_msgs::TwistStamped>("/cmd_vel_quadruped", 10, cmdVelQuadrupedCallback);
